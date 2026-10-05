@@ -1,0 +1,9 @@
+{
+  "name": "demo",
+  "layout": "auto",
+  "tasks": {
+    "api": "node ticker.js api 1000",
+    "tools": "node ticker.js tools 1400",
+    "web": "node ticker.js web 700"
+  }
+}

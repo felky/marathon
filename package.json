@@ -1,0 +1,21 @@
+{
+  "name": "marathon",
+  "version": "0.1.0",
+  "private": true,
+  "description": "mth - run a project's tasks in parallel, each in its own pane, all in one terminal window",
+  "type": "module",
+  "bin": {
+    "mth": "bin/mth.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test \"test/**/*.test.js\""
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@xterm/headless": "^6.0.0",
+    "node-pty": "^1.1.0"
+  }
+}
