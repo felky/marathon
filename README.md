@@ -39,13 +39,13 @@ marathon (`mth`) reads a small `mth.json` file and launches every task in its ow
 ## Installation
 
 ```sh
-npm install -g mth
+npm install -g marathon-tui
 ```
 
 Or run it once without installing:
 
 ```sh
-npx mth
+npx marathon-tui
 ```
 
 On Linux, `node-pty` is compiled during install, so `python3`, `make` and a C++ compiler (`build-essential` on Debian/Ubuntu) must be available. Windows and macOS use prebuilt binaries.
@@ -59,7 +59,7 @@ npm install
 npm link
 ```
 
-`npm link` puts `mth` on your `PATH`. To remove it later, run `npm unlink -g mth`.
+`npm link` puts `mth` on your `PATH`. To remove it later, run `npm unlink -g marathon-tui`.
 
 ## Quick start
 
