@@ -1,5 +1,5 @@
 {
-  "name": "mth",
+  "name": "marathon-tui",
   "version": "0.1.0",
   "description": "mth - run a project's tasks in parallel, each in its own pane, all in one terminal window",
   "keywords": [
