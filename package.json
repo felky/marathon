@@ -1,19 +1,44 @@
 {
-  "name": "marathon",
+  "name": "mth",
   "version": "0.1.0",
-  "private": true,
   "description": "mth - run a project's tasks in parallel, each in its own pane, all in one terminal window",
+  "keywords": [
+    "cli",
+    "terminal",
+    "tui",
+    "panes",
+    "parallel",
+    "concurrently",
+    "task-runner",
+    "monorepo",
+    "workspaces",
+    "dev-server"
+  ],
+  "homepage": "https://github.com/felky/marathon#readme",
+  "bugs": {
+    "url": "https://github.com/felky/marathon/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/felky/marathon.git"
+  },
+  "license": "MIT",
+  "author": "felkan <private@felkan.dev>",
   "type": "module",
   "bin": {
     "mth": "bin/mth.js"
   },
+  "files": [
+    "bin/",
+    "src/"
+  ],
   "engines": {
     "node": ">=18"
   },
   "scripts": {
-    "test": "node --test \"test/**/*.test.js\""
+    "test": "node --test \"test/**/*.test.js\"",
+    "prepublishOnly": "npm test"
   },
-  "license": "MIT",
   "dependencies": {
     "@xterm/headless": "^6.0.0",
     "node-pty": "^1.1.0"

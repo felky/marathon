@@ -39,23 +39,27 @@ marathon (`mth`) reads a small `mth.json` file and launches every task in its ow
 ## Installation
 
 ```sh
+npm install -g mth
+```
+
+Or run it once without installing:
+
+```sh
+npx mth
+```
+
+On Linux, `node-pty` is compiled during install, so `python3`, `make` and a C++ compiler (`build-essential` on Debian/Ubuntu) must be available. Windows and macOS use prebuilt binaries.
+
+### From source
+
+```sh
 git clone https://github.com/felky/marathon.git
 cd marathon
 npm install
 npm link
 ```
 
-`npm link` puts `mth` on your `PATH`. To remove it later:
-
-```sh
-npm unlink -g marathon
-```
-
-You can also run it without installing anything:
-
-```sh
-node bin/mth.js
-```
+`npm link` puts `mth` on your `PATH`. To remove it later, run `npm unlink -g mth`.
 
 ## Quick start
 
@@ -171,10 +175,10 @@ Each task runs in a pseudo-terminal (`node-pty`), so it believes it is attached 
 
 ## Troubleshooting
 
-- **`mth: command not found`** — reopen the terminal after `npm link`, and make sure the npm global bin directory is on your `PATH`.
+- **`mth: command not found`** — reopen the terminal after installing, and make sure the npm global bin directory is on your `PATH`.
 - **A command fails with a syntax error on Windows** — the default shell is PowerShell. For `&&` or cmd-specific syntax, set `"shell": "cmd"` on the task.
 - **A tool is not found on macOS** — tasks run through `$SHELL -lc`; add the tool to your shell profile's `PATH`.
-- **`node-pty` fails to install** — a prebuilt binary may be missing for your platform. Install build tools (Xcode Command Line Tools, `build-essential`, or Visual Studio Build Tools) and reinstall.
+- **`node-pty` fails to install** — on Linux it is always built from source; on other platforms a prebuilt binary may be missing. Install build tools (Xcode Command Line Tools, `build-essential`, or Visual Studio Build Tools) and reinstall.
 - **Panes are cramped** — resize the window. At least 20x6 cells are required; below that `mth` shows a "terminal too small" message.
 - **Output looks wrong in an unusual terminal** — use `mth --plain`.
 
