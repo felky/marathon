@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { bold, colorCode, dim, RESET, supportsColor } from './colors.js';
-import { readConfig } from './config.js';
-import { detectTasks } from './detect.js';
+import { expandSelection, readConfig } from './config.js';
+import { detectProjects, detectTasks } from './detect.js';
 import { findRepoConfig, REPO_CONFIG_NAME, configDir } from './paths.js';
 import { loadRegistry, addProject, removeProject } from './registry.js';
 import { runPlain } from './plain.js';
@@ -18,7 +18,8 @@ mth — run a project's tasks side by side in one terminal window
 Usage
   mth                       run the project in this folder (mth.json)
   mth <project>             run a saved project
-  mth <project> <task...>   run only some of its tasks
+  mth <project> <task...>   run only some of its tasks (or sub-projects)
+  mth <sub-project|task...> in a folder whose mth.json lists "projects", run only those
   mth ls                    list saved projects and their tasks
   mth link [name]           save this folder as a project
   mth unlink <name>         forget a saved project
@@ -86,23 +87,20 @@ export async function main(argv) {
 }
 
 async function runProject(positionals, flags) {
-  const name = positionals[0];
-  const taskIds = positionals.slice(1);
-  const project = resolveProject(name);
-  if (!project) return;
+  const resolved = resolveProject(positionals[0]);
+  if (!resolved) return;
+  const { project } = resolved;
+  const taskIds = resolved.selectsHere ? positionals : positionals.slice(1);
 
   let tasks;
   if (taskIds.length > 0) {
-    const byId = new Map(project.tasks.map((task) => [task.id, task]));
-    tasks = taskIds.map((id) => {
-      const task = byId.get(id);
-      if (!task) {
-        throw new Error(
-          `Project "${project.name}" has no task "${id}". Available: ${project.tasks.map((t) => t.id).join(', ')}`,
-        );
-      }
-      return task;
+    const ids = new Set(project.tasks.map((task) => task.id));
+    const available = [...project.groups.keys(), ...ids].join(', ');
+    const wanted = expandSelection(taskIds, ids, project.groups, (id) => {
+      return `Project "${project.name}" has no task or sub-project "${id}". Available: ${available}`;
     });
+    const byId = new Map(project.tasks.map((task) => [task.id, task]));
+    tasks = wanted.map((id) => byId.get(id));
   } else {
     const selected = new Set(project.selected);
     tasks = project.tasks.filter((task) => selected.has(task.id));
@@ -130,6 +128,8 @@ async function runProject(positionals, flags) {
   await runTui(project, tasks);
 }
 
+// Returns { project, selectsHere }. selectsHere means the first argument already names
+// a task or sub-project of the mth.json in this folder rather than a project to open.
 function resolveProject(name) {
   if (!name || name === '.') {
     const found = findRepoConfig();
@@ -140,7 +140,7 @@ function resolveProject(name) {
       }
       throw new Error(`No ${REPO_CONFIG_NAME} found in this folder. Run "mth init" to create one.`);
     }
-    return readConfig(found.dir);
+    return { project: readConfig(found.dir), selectsHere: false };
   }
 
   const registry = loadRegistry();
@@ -149,18 +149,21 @@ function resolveProject(name) {
     if (!fs.existsSync(entry.path)) {
       throw new Error(`Saved project "${name}" points to ${entry.path}, which no longer exists. Run "mth unlink ${name}".`);
     }
-    return readConfig(entry.path);
-  }
-
-  const direct = path.resolve(name);
-  if (fs.existsSync(direct) && fs.statSync(direct).isDirectory() && fs.existsSync(path.join(direct, REPO_CONFIG_NAME))) {
-    return readConfig(direct);
+    return { project: readConfig(entry.path), selectsHere: false };
   }
 
   const here = findRepoConfig();
   if (here) {
     const config = readConfig(here.dir);
-    if (config.name === name) return config;
+    if (config.name === name) return { project: config, selectsHere: false };
+    if (config.groups.has(name) || config.tasks.some((task) => task.id === name)) {
+      return { project: config, selectsHere: true };
+    }
+  }
+
+  const direct = path.resolve(name);
+  if (fs.existsSync(direct) && fs.statSync(direct).isDirectory() && fs.existsSync(path.join(direct, REPO_CONFIG_NAME))) {
+    return { project: readConfig(direct), selectsHere: false };
   }
 
   const suggestions = Object.keys(registry.projects).filter(
@@ -246,6 +249,15 @@ function initProject(flags) {
   if (fs.existsSync(file) && !flags.has('--force')) {
     throw new Error(`${REPO_CONFIG_NAME} already exists here (use --force to overwrite).`);
   }
+  const projects = detectProjects(dir);
+  if (Object.keys(projects).length > 0) {
+    const config = { name: path.basename(dir), layout: 'auto', projects };
+    fs.writeFileSync(file, JSON.stringify(config, null, 2) + '\n');
+    console.log(`Created ${file} with ${Object.keys(projects).length} project(s): ${Object.keys(projects).join(', ')}.`);
+    console.log(dim('Next: "mth" runs them all, "mth <project>" runs one, "mth link" saves this folder.'));
+    return;
+  }
+
   const detected = detectTasks(dir);
   const config = {
     name: path.basename(dir),

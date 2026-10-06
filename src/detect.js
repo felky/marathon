@@ -36,6 +36,32 @@ export function detectTasks(dir) {
   return { tasks, detected: true, manager };
 }
 
+// Finds child folders (up to two levels deep) that already have their own mth.json.
+export function detectProjects(dir) {
+  const projects = {};
+  const queue = [{ dir, depth: 0 }];
+  while (queue.length > 0) {
+    const current = queue.shift();
+    let entries;
+    try {
+      entries = fs.readdirSync(current.dir, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
+      if (!entry.isDirectory() || SKIP_DIRS.has(entry.name) || entry.name.startsWith('.')) continue;
+      const child = path.join(current.dir, entry.name);
+      if (fs.existsSync(path.join(child, 'mth.json'))) {
+        const id = uniqueId(projects, shortName(entry.name).replace(/:/g, '-'));
+        projects[id] = path.relative(dir, child).split(path.sep).join('/');
+      } else if (current.depth + 1 < 2) {
+        queue.push({ dir: child, depth: current.depth + 1 });
+      }
+    }
+  }
+  return projects;
+}
+
 function placeholderTasks() {
   return {
     api: { cmd: 'echo "replace me with your API command"', cwd: '.' },

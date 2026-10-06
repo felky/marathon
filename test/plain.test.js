@@ -57,3 +57,24 @@ test('unknown project names fail with a hint', () => {
   assert.equal(result.status, 1);
   assert.match(result.stderr, /Unknown project/);
 });
+test('a top-level mth.json runs sub-projects and can select one by name', () => {
+  const root = tempDir('mth-top-');
+  const apiDir = path.join(root, 'api');
+  fs.mkdirSync(apiDir);
+  fs.mkdirSync(path.join(root, 'web'));
+  fs.writeFileSync(path.join(apiDir, 'mth.json'), JSON.stringify({ tasks: { dev: 'node -e "console.log(\'api up\')"' } }));
+  fs.writeFileSync(
+    path.join(root, 'mth.json'),
+    JSON.stringify({ projects: { api: 'api', web: { tasks: { dev: 'node -e "console.log(\'web up\')"' } } } }),
+  );
+
+  const all = run(['--plain'], { cwd: root });
+  assert.equal(all.status, 0, all.stderr);
+  assert.match(all.stdout, /\[api:dev\s*\] api up/);
+  assert.match(all.stdout, /\[web:dev\s*\] web up/);
+
+  const one = run(['web', '--plain'], { cwd: root });
+  assert.equal(one.status, 0, one.stderr);
+  assert.match(one.stdout, /\[web:dev\] web up/);
+  assert.doesNotMatch(one.stdout, /api up/);
+});

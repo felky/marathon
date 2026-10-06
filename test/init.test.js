@@ -71,3 +71,16 @@ test('link, ls and unlink roundtrip through the registry', () => {
   const empty = run(['ls'], dir, home);
   assert.match(empty.stdout, /No saved projects yet/);
 });
+test('init in a parent folder lists child projects that have mth.json', () => {
+  const dir = tempDir('mth-parent-');
+  for (const sub of ['backend', path.join('apps', 'web')]) {
+    fs.mkdirSync(path.join(dir, sub), { recursive: true });
+    fs.writeFileSync(path.join(dir, sub, 'mth.json'), JSON.stringify({ tasks: { dev: 'echo hi' } }));
+  }
+
+  const result = run(['init'], dir, tempDir('mth-home-'));
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /2 project\(s\)/);
+  const config = JSON.parse(fs.readFileSync(path.join(dir, 'mth.json'), 'utf8'));
+  assert.deepEqual(config.projects, { web: 'apps/web', backend: 'backend' });
+});

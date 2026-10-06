@@ -110,8 +110,50 @@ mth my-project    # run it from anywhere
 | --- | --- | --- |
 | `name` | string | Project name. Defaults to the folder name. |
 | `layout` | string | `auto` (default), `cols`, `rows` or `grid`. |
-| `default` | string[] | Tasks to run when none are named on the command line. Defaults to all tasks. |
+| `default` | string[] | Tasks (or sub-projects) to run when none are named on the command line. Defaults to all tasks. |
 | `shell` | string | Shell override for every task. |
+| `projects` | object | Other project folders to run alongside this one. See [Multiple projects](#multiple-projects). `tasks` is optional when `projects` is set. |
+
+### Multiple projects
+
+A `mth.json` in a parent folder can pull in several project folders with `projects`, so one command starts all of them:
+
+```json
+{
+  "name": "acme",
+  "tasks": { "db": "docker compose up db" },
+  "projects": {
+    "api": "services/api",
+    "web": { "path": "apps/web", "default": ["dev"], "color": "blue" },
+    "tools": { "path": "tools", "env": { "RUST_LOG": "debug" }, "tasks": { "watch": "cargo watch -x run" } }
+  },
+  "default": ["db", "api", "web"]
+}
+```
+
+- A project given as a string, or as an object without `tasks`, uses the `mth.json` inside that folder.
+- A project with `tasks` (and optionally its own `projects`) is configured entirely from the parent file; its task `cwd` values are relative to the project's folder.
+- Task names are prefixed with the project name: `api:dev`, `web:dev`, `tools:watch`.
+- `default` (top level or per project) accepts task names and project names. A project name means that project's own default tasks.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `path` | string | Project folder, relative to this `mth.json`. Defaults to the project name. |
+| `tasks` | object | Inline tasks. When set, the folder does not need its own `mth.json`. |
+| `default` | string[] | Which of the project's tasks to run. Overrides the project's own `default`. |
+| `env` | object | Environment variables for every task of the project. A task's own `env` wins. |
+| `color` | string | Title color for every task of the project that does not set its own. |
+| `shell` | string | Shell for every task of the project that does not set its own. |
+
+From the parent folder, name projects or tasks to run only those:
+
+```sh
+mth              # everything in "default"
+mth web          # only the web project
+mth api web:dev  # the api project plus one task
+```
+
+`mth init` in a folder whose subfolders (up to two levels down) already have `mth.json` files creates a parent config listing them.
 
 Every command runs through a shell:
 
@@ -123,11 +165,12 @@ Every command runs through a shell:
 | Command | Description |
 | --- | --- |
 | `mth` | Run the project in the current folder. |
-| `mth <project> [task...]` | Run a saved project, optionally a subset of its tasks. |
+| `mth <project> [task...]` | Run a saved project, optionally a subset of its tasks or sub-projects. |
+| `mth <sub-project\|task...>` | In a folder whose `mth.json` has `projects`, run only the named sub-projects or tasks. |
 | `mth ls` | List saved projects and their tasks. |
 | `mth link [name]` | Save the current folder as a project. |
 | `mth unlink <name>` | Forget a saved project. |
-| `mth init [--force]` | Create `mth.json` here. |
+| `mth init [--force]` | Create `mth.json` here, listing child projects if any have their own `mth.json`. |
 | `mth doctor` | Print environment and dependency status. |
 | `mth help` | Show usage. |
 
