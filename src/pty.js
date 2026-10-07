@@ -1,4 +1,7 @@
 import { spawnSync } from 'node:child_process';
+import { chmodSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { buildEnv, buildShellInvocation, isWindows } from './shell.js';
 
 let ptyModule = null;
@@ -6,6 +9,12 @@ let ptyModule = null;
 export async function loadPty() {
   if (!ptyModule) {
     const module = await import('node-pty');
+    if (process.platform === 'darwin') {
+      try {
+        const lib = fileURLToPath(import.meta.resolve('node-pty'));
+        chmodSync(path.join(lib, '../../prebuilds', `darwin-${process.arch}`, 'spawn-helper'), 0o755);
+      } catch {}
+    }
     ptyModule = module.default && module.default.spawn ? module.default : module;
   }
   return ptyModule;
